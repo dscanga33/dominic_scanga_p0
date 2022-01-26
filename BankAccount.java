@@ -2,6 +2,8 @@
 
 package bankapp;
 
+import bankapp.SQL.BankSQL;
+
 import java.sql.Connection;
 import java.text.NumberFormat;
 import java.util.InputMismatchException;
@@ -9,42 +11,53 @@ import java.util.Scanner;
 
 public class BankAccount {
     Connection conn = JDBCConnection.getConnection();
-    private static int totalAccounts = 0;// Do we really need this?
-    private String accountType;
+    public static Scanner s = new Scanner(System.in);
     private double balance;
     private int accountNum;
+    private int userNum;
 
-    public BankAccount(String accountType, double balance) {
-        this.accountType = accountType;
+    public BankAccount()
+    {
+
+    }
+    public BankAccount(double balance,User u) {
         this.balance = balance;
-        this.accountNum = totalAccounts+1;
+        this.userNum = u.getAccountNum();
     }
 
-    public static BankAccount createAccount(Scanner s, User u) {
-        System.out.print("Is this a savings, checking, or combination account?: ");
-        String accountType = s.next();
+    public int getUserNum() {
+        return userNum;
+    }
+
+    public void setUserNum(int userNum) {
+        this.userNum = userNum;
+    }
+
+    public static BankAccount createAccount(User u) {
         System.out.println("How much would you like to initially put into your account?: ");
 
         try {
             double balance = Double.parseDouble(s.next());
+            if(balance < 0)
+            {
+                throw new NumberFormatException();
+            }
             System.out.println();
-            BankSQL.addBank(balance,accountType,u);
-            return new BankAccount(accountType, balance);
+            return BankSQL.addBank(balance,u);
         } catch (NullPointerException | InputMismatchException | NumberFormatException e) {
             System.out.println("Invalid balance, account created with a starting balance of 0.");
             System.out.println();
-            BankSQL.addBank(0,accountType,u);
-            return new BankAccount(accountType, 0.0D);
+            return BankSQL.addBank(0,u);
         }
     }
 
-    public String getAccountType()
-    {
-        return this.accountType;
-    }
 
     public double getBalance() {
         return this.balance;
+    }
+    public void setBalance(double balance)
+    {
+        this.balance = balance;
     }
 
     public String viewBalance() {
@@ -52,7 +65,7 @@ public class BankAccount {
         return f.format(this.balance);
     }
 
-    public void deposit(Scanner s) {
+    public void deposit() {
         try {
             System.out.println("How much would you like to deposit?: ");
             double deposit = s.nextDouble();
@@ -60,6 +73,7 @@ public class BankAccount {
                 System.out.println("Invalid amount, deposit attempt failed");
             } else {
                 this.balance += deposit;
+                BankSQL.update(this);
             }
         } catch (NullPointerException | InputMismatchException | NumberFormatException e) {
             System.out.println("Invalid input, deposit attempt failed");
@@ -67,7 +81,7 @@ public class BankAccount {
 
     }
 
-    public void withdraw(Scanner s) {
+    public void withdraw() {
         try {
             System.out.println("How much would you like to withdraw?");
             double withdraw = s.nextDouble();
@@ -77,6 +91,7 @@ public class BankAccount {
                 System.out.println("Invalid amount, withdrawal attempt failed");
             } else {
                 this.balance -= withdraw;
+                BankSQL.update(this);
             }
         } catch (NullPointerException | NumberFormatException e) {
             System.out.println("Invalid input, withdrawal attempt failed");
@@ -93,6 +108,6 @@ public class BankAccount {
     }
 
     public String toString() {
-        return "BankAccount (accountType: " + this.accountType + "; balance: " + this.viewBalance() + "; accountNum: " + this.accountNum;
+        return "Account number: "+this.accountNum+" | Account balance: "+this.viewBalance();
     }
 }
